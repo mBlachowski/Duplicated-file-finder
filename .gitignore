@@ -1,5 +1,5 @@
 log/
-files
+files/
 *test*.py
 .idea
-venv
+venv/
