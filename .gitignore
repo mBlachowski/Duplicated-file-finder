@@ -1,5 +1,6 @@
 log/
 files/
 *test*.py
+*_test.csv
 .idea
 venv/

@@ -59,7 +59,8 @@ def parallel_scan(drive_l: str) -> pd.DataFrame:
 
         # noinspection PyBroadException
         try:
-            if not os.path.islink(os.path.dirname(file)):  # Skip symlinks
+            file_path = os.path.dirname(file)
+            if os.path.realpath(file_path) == file_path:    # Avoid false positive if directory is in symlinks
                 with open(file, 'rb') as f:
                     f_hash = hashlib.sha3_512(f.read(2048)).hexdigest()
                     df = pd.concat([df, pd.DataFrame.from_records([{'path': fr'{file}', 'hash': f_hash}])],
