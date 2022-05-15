@@ -53,20 +53,21 @@ def parallel_scan(drive_l: str) -> pd.DataFrame:
     df_info.write(f'Scanning has started at: {start_date} \n')
     df_info.flush()
 
+    excludes = ['Windows', 'steam', 'Steam', '$360Section', '$Recycle.Bin']
     print('Starting scan')
-    for file in glob.iglob(fr'{drive_l}\**\*.*', recursive=True):  # Scan loop
+    for root, dirs, files in os.walk(drive_l, topdown=True, followlinks=False):
+        dirs[:] = [dirname for dirname in dirs if dirname not in excludes]
+        for f in files:
+            full_dir = os.path.join(root, f)
+            # noinspection PyBroadException
+            try:
+                with open(full_dir, 'rb') as f:
 
-        # noinspection PyBroadException
-        try:
-            if os.path.realpath(file) == os.path.abspath(file):    # Avoid false positive if directory is in symlinks
-                with open(file, 'rb') as f:
                     f_hash = hashlib.sha3_512(f.read(2048)).hexdigest()
-                    df = pd.concat([df, pd.DataFrame.from_records([{'path': fr'{file}', 'hash': f_hash}])],
+                    df = pd.concat([df, pd.DataFrame.from_records([{'path': fr'{full_dir}', 'hash': f_hash}])],
                                    ignore_index=True)
-                    print(file)
-
-        except BaseException:
-            err_log.write(fr'{file}: {exc_info()}' '\n')
+            except BaseException:
+                err_log.write(fr'{full_dir}: {exc_info()}' '\n')
 
     end_date = datetime.now().strftime('%d.%m.%Y_%H.%M.%S.%f')
     buffer = StringIO()
