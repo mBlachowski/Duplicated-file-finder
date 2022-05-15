@@ -39,12 +39,10 @@ def get_drives() -> list:  # Get drives letters
 def parallel_scan(drive_l: str) -> pd.DataFrame:
     df = pd.DataFrame(columns=['path', 'hash'])
 
-    print(f'Scanning files in {drive_l}.')
-
-    if not os.path.isdir('log'):  # make log director if it`s not exist
+    if not os.path.isdir('log'):  # make log directory if it`s not exist
         os.mkdir('log')
 
-    if not os.path.isdir('files'):  # make files director if it`s not exist
+    if not os.path.isdir('files'):  # make files directory if it`s not exist
         os.mkdir('files')
 
     # Create log files
@@ -55,16 +53,18 @@ def parallel_scan(drive_l: str) -> pd.DataFrame:
     df_info.write(f'Scanning has started at: {start_date} \n')
     df_info.flush()
 
+    print('Starting scan')
     for file in glob.iglob(fr'{drive_l}\**\*.*', recursive=True):  # Scan loop
 
         # noinspection PyBroadException
         try:
-            file_path = os.path.dirname(file)
-            if os.path.realpath(file_path) == file_path:    # Avoid false positive if directory is in symlinks
+            if os.path.realpath(file) == os.path.abspath(file):    # Avoid false positive if directory is in symlinks
                 with open(file, 'rb') as f:
                     f_hash = hashlib.sha3_512(f.read(2048)).hexdigest()
                     df = pd.concat([df, pd.DataFrame.from_records([{'path': fr'{file}', 'hash': f_hash}])],
                                    ignore_index=True)
+                    print(file)
+
         except BaseException:
             err_log.write(fr'{file}: {exc_info()}' '\n')
 
