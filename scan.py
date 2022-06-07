@@ -2,12 +2,11 @@ import pandas as pd
 import hashlib
 import multiprocessing as mp
 from sys import exc_info
-import glob
 from datetime import datetime
 from io import StringIO
 import os
 import psutil
-
+import logging
 
 def drop_uniques(datafr: pd.DataFrame, col_name: str, keep_test_col: bool) -> pd.DataFrame:
     data = pd.DataFrame(datafr.duplicated(subset=[col_name], keep=False), columns=['isDuplicated'])  # Mark uniques
@@ -19,8 +18,6 @@ def drop_uniques(datafr: pd.DataFrame, col_name: str, keep_test_col: bool) -> pd
 
     if not keep_test_col:  # drop duplication test column if False
         duplicates.drop('isDuplicated', axis=1, inplace=True)
-
-    print(duplicates)
 
     return duplicates
 
@@ -55,15 +52,16 @@ def parallel_scan(drive_l: str) -> pd.DataFrame:
 
     excludes = ['Windows', 'steam', 'Steam', '$360Section', '$Recycle.Bin']
     print('Starting scan')
-    for root, dirs, files in os.walk(drive_l, topdown=True, followlinks=False):
-        dirs[:] = [dirname for dirname in dirs if dirname not in excludes]
+
+    for root, dirs, files in os.walk(drive_l, topdown=True, followlinks=False):  # Scan loop
+        dirs[:] = [dirname for dirname in dirs if dirname not in excludes]  # Remove excluded dirs
         for f in files:
             full_dir = os.path.join(root, f)
             # noinspection PyBroadException
             try:
-                with open(full_dir, 'rb') as f:
-
-                    f_hash = hashlib.sha3_512(f.read(2048)).hexdigest()
+                with open(full_dir, 'rb') as file:
+                    print(full_dir)
+                    f_hash = hashlib.sha3_512(file.read()).hexdigest()
                     df = pd.concat([df, pd.DataFrame.from_records([{'path': fr'{full_dir}', 'hash': f_hash}])],
                                    ignore_index=True)
             except BaseException:
