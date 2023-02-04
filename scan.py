@@ -34,21 +34,6 @@ def get_drives() -> list:  # Get drives letters
 
 
 def get_all_directories(drive_l: list) -> list:
-    # df = pd.DataFrame(columns=['path', 'hash'])
-
-    # if not os.path.isdir('log'):  # make log directory if it`s not exist
-    #     os.mkdir('log')
-    #
-    # if not os.path.isdir('files'):  # make files directory if it`s not exist
-    #     os.mkdir('files')
-
-    # Create log files
-    # start_date = datetime.now().strftime('%d.%m.%Y_%H.%M.%S')
-    # err_log = open(f'log/files_error_{start_date}_{drive_l[0]}.log', 'w', encoding='utf-8')  # logging all file errors
-    # df_info = open(f'log/Info_{start_date}_{drive_l[0]}.log', 'w', encoding='utf-8')  # File to save dataframe info
-    #
-    # df_info.write(f'Scanning has started at: {start_date} \n')
-    # df_info.flush()
 
     dirs = []
     excludes = ['Windows', 'steam', 'Steam', '$360Section', '$Recycle.Bin']
@@ -59,20 +44,39 @@ def get_all_directories(drive_l: list) -> list:
     #dirs[:] = [dirname for dirname in dirs if dirname not in excludes]  # Remove excluded dirs
     print(dirs)
 
-    # end_date = datetime.now().strftime('%d.%m.%Y_%H.%M.%S.%f')
-    # buffer = StringIO()
-    # df.info(memory_usage="deep", buf=buffer)  # Get data frame info
-    # df_info.write(buffer.getvalue() + '\n' + 'Scanning has been completed at: ' + end_date)  # write end date to file
-    # df_info.flush()
-    #
-    # df.to_csv(fr'files\{drive_l[0]}.csv')  # write paths and hashes from one partition to csv(only for debug. this
-    # may be deleted in final version)
-
-    # df_info.close()
-    # err_log.close()
-
     return dirs
 
+def scan_files(directory) -> pd.DataFrame:
+
+    df = pd.DataFrame(columns=['path', 'hash'])
+
+    if not os.path.isdir('log'):  # make log directory if it`s not exist
+        os.mkdir('log')
+
+    if not os.path.isdir('files'):  # make files directory if it`s not exist
+        os.mkdir('files')
+
+
+    start_date = datetime.now().strftime('%d.%m.%Y_%H.%M.%S')
+    err_log = open(f'log/files_error_{start_date}}.log', 'w', encoding='utf-8')  # logging all file errors
+    df_info = open(f'log/Info_{start_date}.log', 'w', encoding='utf-8')  # File to save dataframe info
+
+    df_info.write(f'Scanning has started at: {start_date} \n')
+    df_info.flush()
+
+    for root, dirs, file in os.walk(directory):
+
+
+    end_date = datetime.now().strftime('%d.%m.%Y_%H.%M.%S.%f')
+    buffer = StringIO()
+    df.info(memory_usage="deep", buf=buffer)  # Get data frame info
+    df_info.write(buffer.getvalue() + '\n' + 'Scanning has been completed at: ' + end_date)  # write end date to file
+    df_info.flush()
+
+    df_info.close()
+    err_log.close()
+
+    return df
 
 def scan_files() -> pd.DataFrame:
 
