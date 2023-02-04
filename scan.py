@@ -33,60 +33,54 @@ def get_drives() -> list:  # Get drives letters
     return existing_drives
 
 
-def parallel_scan(drive_l: str) -> pd.DataFrame:
-    df = pd.DataFrame(columns=['path', 'hash'])
+def get_all_directories(drive_l: list) -> list:
+    # df = pd.DataFrame(columns=['path', 'hash'])
 
-    if not os.path.isdir('log'):  # make log directory if it`s not exist
-        os.mkdir('log')
-
-    if not os.path.isdir('files'):  # make files directory if it`s not exist
-        os.mkdir('files')
+    # if not os.path.isdir('log'):  # make log directory if it`s not exist
+    #     os.mkdir('log')
+    #
+    # if not os.path.isdir('files'):  # make files directory if it`s not exist
+    #     os.mkdir('files')
 
     # Create log files
-    start_date = datetime.now().strftime('%d.%m.%Y_%H.%M.%S')
-    err_log = open(f'log/files_error_{start_date}_{drive_l[0]}.log', 'w', encoding='utf-8')  # logging all file errors
-    df_info = open(f'log/Info_{start_date}_{drive_l[0]}.log', 'w', encoding='utf-8')  # File to save dataframe info
+    # start_date = datetime.now().strftime('%d.%m.%Y_%H.%M.%S')
+    # err_log = open(f'log/files_error_{start_date}_{drive_l[0]}.log', 'w', encoding='utf-8')  # logging all file errors
+    # df_info = open(f'log/Info_{start_date}_{drive_l[0]}.log', 'w', encoding='utf-8')  # File to save dataframe info
+    #
+    # df_info.write(f'Scanning has started at: {start_date} \n')
+    # df_info.flush()
 
-    df_info.write(f'Scanning has started at: {start_date} \n')
-    df_info.flush()
-
+    dirs = []
     excludes = ['Windows', 'steam', 'Steam', '$360Section', '$Recycle.Bin']
     print('Starting scan')
+    for i in drive_l:
+        print(i)
+        dirs.extend([i+d for d in os.listdir(i)])
+    #dirs[:] = [dirname for dirname in dirs if dirname not in excludes]  # Remove excluded dirs
+    print(dirs)
 
-    for root, dirs, files in os.walk(drive_l, topdown=True, followlinks=False):  # Scan loop
-        dirs[:] = [dirname for dirname in dirs if dirname not in excludes]  # Remove excluded dirs
-        for f in files:
-            full_dir = os.path.join(root, f)
-            # noinspection PyBroadException
-            try:
-                with open(full_dir, 'rb') as file:
-                    print(full_dir)
-                    f_hash = hashlib.sha3_512(file.read()).hexdigest()
-                    df = pd.concat([df, pd.DataFrame.from_records([{'path': fr'{full_dir}', 'hash': f_hash}])],
-                                   ignore_index=True)
-            except BaseException:
-                err_log.write(fr'{full_dir}: {exc_info()}' '\n')
-
-    end_date = datetime.now().strftime('%d.%m.%Y_%H.%M.%S.%f')
-    buffer = StringIO()
-    df.info(memory_usage="deep", buf=buffer)  # Get data frame info
-    df_info.write(buffer.getvalue() + '\n' + 'Scanning has been completed at: ' + end_date)  # write end date to file
-    df_info.flush()
-
-    df.to_csv(fr'files\{drive_l[0]}.csv')  # write paths and hashes from one partition to csv(only for debug. this
+    # end_date = datetime.now().strftime('%d.%m.%Y_%H.%M.%S.%f')
+    # buffer = StringIO()
+    # df.info(memory_usage="deep", buf=buffer)  # Get data frame info
+    # df_info.write(buffer.getvalue() + '\n' + 'Scanning has been completed at: ' + end_date)  # write end date to file
+    # df_info.flush()
+    #
+    # df.to_csv(fr'files\{drive_l[0]}.csv')  # write paths and hashes from one partition to csv(only for debug. this
     # may be deleted in final version)
 
-    df_info.close()
-    err_log.close()
+    # df_info.close()
+    # err_log.close()
 
-    return df
+    return dirs
 
 
 def scan_files() -> pd.DataFrame:
-    drive_labels = get_drives()
 
-    pool = mp.Pool(len(drive_labels))
-    result = pd.concat(pool.map(parallel_scan, drive_labels))
+    drive_labels = get_drives()
+    dirs = get_all_directories(drive_labels)
+
+    pool = mp.Pool(len(dirs))
+    #result = pd.concat(pool.map(,))
 
     pool.close()
     pool.join()
