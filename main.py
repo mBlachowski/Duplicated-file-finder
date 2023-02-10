@@ -9,9 +9,9 @@ def main():
     if sys.platform == 'win32':  # Disable redirection from system32 to Syswow64 on 64 bit machines and check
         # admin permission for Windows
 
-        if not windll.shell32.IsUserAnAdmin():
-            windll.shell32.ShellExecuteW(None, "runas", sys.executable, " ".join(sys.argv), None, 1)
-            exit(1)
+        # if not windll.shell32.IsUserAnAdmin():
+        #     windll.shell32.ShellExecuteW(None, "runas", sys.executable, " ".join(sys.argv), None, 1)
+        #     exit(1)
 
         dll_hook = windll.kernel32
         wow64 = c_long(0)
@@ -20,7 +20,7 @@ def main():
         print('You need root privilege')
         raise EnvironmentError
 
-    scan.scan_files().to_csv('files/duplicates.csv')  # Start scan
+    scan.start_scan().to_csv('files/duplicates.csv')  # Start scan
 
     input('press any key to end script')
 

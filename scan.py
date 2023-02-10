@@ -6,7 +6,7 @@ from datetime import datetime
 from io import StringIO
 import os
 import psutil
-import logging
+
 
 def drop_uniques(datafr: pd.DataFrame, col_name: str, keep_test_col: bool) -> pd.DataFrame:
     data = pd.DataFrame(datafr.duplicated(subset=[col_name], keep=False), columns=['isDuplicated'])  # Mark uniques
@@ -22,7 +22,7 @@ def drop_uniques(datafr: pd.DataFrame, col_name: str, keep_test_col: bool) -> pd
     return duplicates
 
 
-def get_drives() -> list:  # Get drives letters
+def get_drives_labels() -> list:
     existing_drives = []
     drives_info = psutil.disk_partitions(all=True)
 
@@ -33,18 +33,15 @@ def get_drives() -> list:  # Get drives letters
     return existing_drives
 
 
-def get_all_directories(drive_l: list) -> list:
+def get_all_directories() -> list:
 
     dirs = []
-    excludes = ['Windows', 'steam', 'Steam', '$360Section', '$Recycle.Bin']
     print('Starting scan')
-    for i in drive_l:
-        print(i)
-        dirs.extend([i+d for d in os.listdir(i)])
-    #dirs[:] = [dirname for dirname in dirs if dirname not in excludes]  # Remove excluded dirs
-    print(dirs)
+    for i in get_drives_labels():
+        dirs.extend([i+d for d in os.listdir(i)])   # Save drive letter+directory to list
 
     return dirs
+
 
 def scan_files(directory) -> pd.DataFrame:
 
@@ -56,16 +53,25 @@ def scan_files(directory) -> pd.DataFrame:
     if not os.path.isdir('files'):  # make files directory if it`s not exist
         os.mkdir('files')
 
-
     start_date = datetime.now().strftime('%d.%m.%Y_%H.%M.%S')
-    err_log = open(f'log/files_error_{start_date}}.log', 'w', encoding='utf-8')  # logging all file errors
+    err_log = open(f'log/files_error_{start_date}.log', 'w', encoding='utf-8')  # logging all file errors
     df_info = open(f'log/Info_{start_date}.log', 'w', encoding='utf-8')  # File to save dataframe info
 
     df_info.write(f'Scanning has started at: {start_date} \n')
     df_info.flush()
-
-    for root, dirs, file in os.walk(directory):
-
+    print(directory)
+    # for root, dirs, files in os.walk(directory):
+    #     for f in files:
+    #         full_dir = os.path.join(root, f)
+    #         # noinspection PyBroadException
+    #         try:
+    #             with open(full_dir, 'rb') as file:
+    #                 print(full_dir)
+    #                 f_hash = hashlib.sha3_512(file.read()).hexdigest()
+    #                 df = pd.concat([df, pd.DataFrame.from_records([{'path': fr'{full_dir}', 'hash': f_hash}])],
+    #                                ignore_index=True)
+    #         except BaseException:
+    #             err_log.write(fr'{full_dir}: {exc_info()}' '\n')
 
     end_date = datetime.now().strftime('%d.%m.%Y_%H.%M.%S.%f')
     buffer = StringIO()
@@ -78,13 +84,13 @@ def scan_files(directory) -> pd.DataFrame:
 
     return df
 
-def scan_files() -> pd.DataFrame:
 
-    drive_labels = get_drives()
-    dirs = get_all_directories(drive_labels)
+def start_scan() -> pd.DataFrame:
+
+    dirs = get_all_directories()    # Get list of all catalogs
 
     pool = mp.Pool(len(dirs))
-    #result = pd.concat(pool.map(,))
+    result = pd.concat(pool.map(scan_files, dirs))
 
     pool.close()
     pool.join()
