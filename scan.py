@@ -54,11 +54,9 @@ def scan_files(directory) -> pd.DataFrame:
         os.mkdir('files')
 
     start_date = datetime.now().strftime('%d.%m.%Y_%H.%M.%S')
-    err_log = open(f'log/files_error_{start_date}.log', 'w', encoding='utf-8')  # logging all file errors
-    df_info = open(f'log/Info_{start_date}.log', 'w', encoding='utf-8')  # File to save dataframe info
 
-    df_info.write(f'Scanning has started at: {start_date} \n')
-    df_info.flush()
+    debug_log = open(f'log/files_error_{start_date}.log', 'w', encoding='utf-8')    # Logging file
+
     print(directory)
     # for root, dirs, files in os.walk(directory):
     #     for f in files:
@@ -75,12 +73,10 @@ def scan_files(directory) -> pd.DataFrame:
 
     end_date = datetime.now().strftime('%d.%m.%Y_%H.%M.%S.%f')
     buffer = StringIO()
-    df.info(memory_usage="deep", buf=buffer)  # Get data frame info
-    df_info.write(buffer.getvalue() + '\n' + 'Scanning has been completed at: ' + end_date)  # write end date to file
-    df_info.flush()
 
-    df_info.close()
-    err_log.close()
+    df.info(memory_usage="deep", buf=buffer)    # Get data frame info
+    debug_log.write(f'Scanning ended: {end_date}\n {buffer}')
+    debug_log.close()
 
     return df
 
