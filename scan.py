@@ -1,7 +1,8 @@
+import threading
+
 import pandas as pd
 import hashlib
-import multiprocessing as mp
-from sys import exc_info
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from io import StringIO
 import os
@@ -34,48 +35,37 @@ def get_drives_labels() -> list:
 
 
 def get_all_directories() -> list:
-
     dirs = []
+    ex = ['Windows']
     print('Starting scan')
     for i in get_drives_labels():
-        dirs.extend([i+d for d in os.listdir(i)])   # Save drive letter+directory to list
-
+        dirs.extend([i + d for d in os.listdir(i) if d not in ex])  # Save drive letter+directory to list
+    print(dirs)
     return dirs
 
 
 def scan_files(directory) -> pd.DataFrame:
-
     df = pd.DataFrame(columns=['path', 'hash'])
 
-    if not os.path.isdir('log'):  # make log directory if it`s not exist
-        os.mkdir('log')
+    debug_log = open(f'log/files_error_{datetime.now().strftime("%d.%m.%Y_%H.%M.%S")}.log', 'w',
+                     encoding='utf-8')  # Logging file
 
-    if not os.path.isdir('files'):  # make files directory if it`s not exist
-        os.mkdir('files')
+    for root, dirs, files in os.walk(directory):
+        for f in files:
+            full_dir = os.path.join(root, f)
+            try:
+                with open(full_dir, 'rb') as file:
+                    print(full_dir)
+                    f_hash = hashlib.sha3_512(file.read(20000)).hexdigest()
+                    df = pd.concat([df, pd.DataFrame.from_records([{'path': fr'{full_dir}', 'hash': f_hash}])],
+                                   ignore_index=True)
+            except IOError as e:
+                debug_log.write(fr'{full_dir}: {e}' '\n')
 
-    start_date = datetime.now().strftime('%d.%m.%Y_%H.%M.%S')
-
-    debug_log = open(f'log/files_error_{start_date}.log', 'w', encoding='utf-8')    # Logging file
-
-    print(directory)
-    # for root, dirs, files in os.walk(directory):
-    #     for f in files:
-    #         full_dir = os.path.join(root, f)
-    #         # noinspection PyBroadException
-    #         try:
-    #             with open(full_dir, 'rb') as file:
-    #                 print(full_dir)
-    #                 f_hash = hashlib.sha3_512(file.read()).hexdigest()
-    #                 df = pd.concat([df, pd.DataFrame.from_records([{'path': fr'{full_dir}', 'hash': f_hash}])],
-    #                                ignore_index=True)
-    #         except BaseException:
-    #             err_log.write(fr'{full_dir}: {exc_info()}' '\n')
-
-    end_date = datetime.now().strftime('%d.%m.%Y_%H.%M.%S.%f')
     buffer = StringIO()
 
-    df.info(memory_usage="deep", buf=buffer)    # Get data frame info
-    debug_log.write(f'Scanning ended: {end_date}\n {buffer}')
+    df.info(memory_usage="deep", buf=buffer)  # Get data frame info
+    debug_log.write(f'Scanning ended: {datetime.now().strftime("%d.%m.%Y_%H.%M.%S.%f")}\n {buffer}')
     debug_log.close()
 
     return df
@@ -83,12 +73,15 @@ def scan_files(directory) -> pd.DataFrame:
 
 def start_scan() -> pd.DataFrame:
 
-    dirs = get_all_directories()    # Get list of all catalogs
+    if not os.path.isdir('log'):  # make log directory if it`s not exist
+        os.mkdir('log')
 
-    pool = mp.Pool(len(dirs))
-    result = pd.concat(pool.map(scan_files, dirs))
+    if not os.path.isdir('files'):  # make files directory if it`s not exist
+        os.mkdir('files')
 
-    pool.close()
-    pool.join()
+    dirs = get_all_directories()  # Get list of all catalogs
+
+    with ThreadPoolExecutor(max_workers=len(dirs)) as pool:
+        result = pd.concat(pool.map(scan_files, dirs))
 
     return drop_uniques(result, 'hash', keep_test_col=False)
